@@ -29,8 +29,8 @@ export type Pengajuan = {
 const dasar: Pengajuan = {
   id: 'TC-MHS-001',
   judul: 'Pengajuan valid (data dasar)',
-  nama: 'SITEFEST PRIMAKARA 2026',
-  jenis: 'Robotika',
+  nama: 'LOMBA INTUISI PRIMAKARA 2026',
+  jenis: 'UI/UX Design',
   penyelenggara: 'Primakara University',
   link: 'https://primakara.ac.id/',
   poster: 'tests/files/logo-primakara.jpg',

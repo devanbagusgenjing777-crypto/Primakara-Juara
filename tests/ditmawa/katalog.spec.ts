@@ -1,16 +1,26 @@
-import { test, expect } from '@playwright/test';
-import { barisTabel, bukaMenu, cari, namaDiBaris, pilihOpsi, tungguToastBerhasil, unik } from '../ui';
+import { test, expect, type Page } from '@playwright/test';
+import { barisTabel, bukaMenu, cari, namaDiBaris, tungguToastBerhasil } from '../ui';
+import { dataKatalog } from '../data/katalog';
 
 // CRUD katalog saling bergantung, jadi dijalankan berurutan (serial).
 test.describe.configure({ mode: 'serial' });
 
-const namaAwal = unik('QA-Katalog');
-const namaUbah = `${namaAwal}-ubah`;
+const { valid, ubah } = dataKatalog;
+
+// Tombol/link aksi di kolom AKSI (bisa berupa button atau link)
+const aksi = (baris: ReturnType<typeof barisTabel>, nama: RegExp) =>
+  baris.getByRole('button', { name: nama }).or(baris.getByRole('link', { name: nama })).first();
+
+// Dropdown di form ini adalah <select> native: <option> tidak bisa di-click,
+// harus dipilih lewat selectOption().
+const pilihSelect = (page: Page, label: RegExp, teks: string) =>
+  page.getByRole('combobox', { name: label }).first().selectOption({ label: teks });
 
 test.describe('Ditmawa › Katalog', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await bukaMenu(page, 'katalog');
+    await expect(page.getByRole('heading', { name: /katalog lomba/i })).toBeVisible();
   });
 
   test('TC-DIT-020 Cari data katalog', async ({ page }) => {
@@ -21,38 +31,54 @@ test.describe('Ditmawa › Katalog', () => {
   });
 
   test('TC-DIT-021 Tambah katalog dengan data valid', async ({ page }) => {
-    await page.getByRole('button', { name: /tambah/i }).click();
-    await page.getByLabel(/nama lomba/i).fill(namaAwal);
-    await page.getByLabel(/penyelenggara/i).fill('QA Penyelenggara');
-    await pilihOpsi(page, /kategori/i, /./);
-    await pilihOpsi(page, /tingkat/i, /./);
-    await page.getByRole('button', { name: /simpan/i }).click();
+    await page
+      .getByRole('button', { name: /buat katalog baru/i })
+      .or(page.getByRole('link', { name: /buat katalog baru/i }))
+      .first()
+      .click();
+
+    await page.getByLabel(/nama lomba/i).fill(valid.nama);
+    await page.getByLabel(/penyelenggara/i).fill(valid.penyelenggara);
+    // Label "Deskripsi" & "Link Detail" tidak terhubung ke inputnya, jadi pakai placeholder
+    await page.getByPlaceholder(/ceritakan tentang lomba/i).fill(valid.deskripsi);
+    await page.getByPlaceholder(/instagram \/ website \/ drive lomba/i).fill(valid.linkDetail);
+    await pilihSelect(page, /kategori/i, valid.kategori);
+    await pilihSelect(page, /tingkat/i, valid.tingkat);
+    // Tiga input tanggal (type=date), urutannya: dibuka, ditutup, pelaksanaan. Format yyyy-mm-dd
+    const tgl = page.locator('input[type="date"]');
+    await tgl.nth(0).fill(valid.pendaftaranDibuka);
+    await tgl.nth(1).fill(valid.pendaftaranDitutup);
+    await tgl.nth(2).fill(valid.tanggalPelaksanaan);
+    await page.getByRole('button', { name: /simpan katalog/i }).click();
     await tungguToastBerhasil(page);
 
-    await cari(page, namaAwal);
-    await expect(barisTabel(page).filter({ hasText: namaAwal }).first()).toBeVisible();
+    await cari(page, valid.nama);
+    await expect(barisTabel(page).filter({ hasText: valid.nama }).first()).toBeVisible();
   });
 
   test('TC-DIT-022 Ubah data katalog', async ({ page }) => {
-    await cari(page, namaAwal);
-    const baris = barisTabel(page).filter({ hasText: namaAwal }).first();
-    await baris.getByRole('button', { name: /edit|ubah/i }).or(baris.getByRole('link', { name: /edit|ubah/i })).first().click();
-    await page.getByLabel(/nama lomba/i).fill(namaUbah);
+    await cari(page, valid.nama);
+    const baris = barisTabel(page).filter({ hasText: valid.nama }).first();
+    await aksi(baris, /^edit$|ubah/i).click();
+    await page.getByLabel(/nama lomba/i).fill(ubah.nama);
     await page.getByRole('button', { name: /simpan/i }).click();
     await tungguToastBerhasil(page);
 
-    await cari(page, namaUbah);
-    await expect(barisTabel(page).filter({ hasText: namaUbah }).first()).toBeVisible();
+    await cari(page, ubah.nama);
+    await expect(barisTabel(page).filter({ hasText: ubah.nama }).first()).toBeVisible();
   });
 
   test('TC-DIT-023 Hapus katalog', async ({ page }) => {
-    await cari(page, namaUbah);
-    const baris = barisTabel(page).filter({ hasText: namaUbah }).first();
-    await baris.getByRole('button', { name: /hapus/i }).click();
-    await page.getByRole('button', { name: /ya|hapus|konfirmasi/i }).last().click();
+    await cari(page, ubah.nama);
+    const baris = barisTabel(page).filter({ hasText: ubah.nama }).first();
+    await aksi(baris, /hapus/i).click();
+
+    // Konfirmasi dibatasi ke dialog supaya tidak salah klik tombol "Hapus" di baris tabel
+    const dialog = page.getByRole('dialog').or(page.getByRole('alertdialog')).first();
+    await dialog.getByRole('button', { name: /ya|hapus|konfirmasi/i }).last().click();
     await tungguToastBerhasil(page);
 
-    await cari(page, namaUbah);
-    await expect(barisTabel(page).filter({ hasText: namaUbah })).toHaveCount(0);
+    await cari(page, ubah.nama);
+    await expect(barisTabel(page).filter({ hasText: ubah.nama })).toHaveCount(0);
   });
 });

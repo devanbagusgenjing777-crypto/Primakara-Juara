@@ -3,7 +3,10 @@
 
 export type Halaman = 'Pengajuan' | 'Pelaporan' | 'Arsip';
 
-export const SEMUA_STATUS = ['Draft', 'Diajukan', 'Ditolak', 'Disetujui', 'Tidak Lolos Final', 'Menunggu Laporan Hasil', 'Menunggu Finalisasi', 'Selesai'] as const;
+export const SEMUA_STATUS = [
+  'Draft', 'Diajukan', 'Ditolak', 'Disetujui', 'Tidak Lolos Final',
+  'Menunggu Laporan Hasil', 'Menunggu Finalisasi', 'Selesai',
+] as const;
 export type Status = (typeof SEMUA_STATUS)[number];
 
 export type Baris = { nama: string; jumlah: number };
@@ -38,11 +41,12 @@ export const PESAN_KOSONG = {
 } as const;
 
 // ---------- Sumber "data aktual" tiap kartu (TC-DIT-001..004) ----------
-// ⚠️ Lomba Aktif (hasil pengamatan): Diajukan + Disetujui + Menunggu Laporan Hasil + Menunggu Finalisasi.
+// Lomba Aktif = Diajukan + Disetujui + Menunggu Laporan Hasil + Menunggu Finalisasi
+// (terbukti: 30 + 84 + 4 + 2 = 120, +1 tambahan tak terlihat = 121 di Dashboard).
 export const SUMBER_HITUNGAN: Record<KunciKartu, { halaman: Halaman; status: Status[] }[]> = {
   menungguPersetujuan: [{ halaman: 'Pengajuan', status: ['Diajukan'] }],
   menungguFinalisasi: [{ halaman: 'Pelaporan', status: ['Menunggu Finalisasi'] }],
-    lombaAktif: [
+  lombaAktif: [
     { halaman: 'Pengajuan', status: ['Diajukan', 'Disetujui'] },
     { halaman: 'Pelaporan', status: ['Menunggu Laporan Hasil', 'Menunggu Finalisasi'] },
   ],
@@ -59,7 +63,7 @@ export const TAMBAHAN_TAK_TERLIHAT: Partial<Record<KunciKartu, number>> = {
 
 // ---------- TC-DIT-005: Lomba Terbaru ----------
 export const LOMBA_TERBARU = {
-  nama: 'VIBE CODE NASIONAL 2026',
+  nama: '', // kosongkan ('') karena Lomba Terbaru berubah tiap ada pengajuan; isi hanya bila ingin mengecek nama tertentu
   mahasiswa: 'I Dewa Gede Agung Devan Prawira',
   universitas: 'Primakara University',
 };
